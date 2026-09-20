@@ -6,6 +6,9 @@ struct RecitersView: View {
 
     @State private var query = ""
     @State private var filter: ReciterFilter = .all
+    @State private var visibleCount = 30
+
+    private let pageSize = 30
 
     private var results: [Reciter] {
         let base = catalog.allReciters
@@ -27,6 +30,10 @@ struct RecitersView: View {
         }
     }
 
+    private var displayedResults: [Reciter] {
+        Array(results.prefix(visibleCount))
+    }
+
     /// Regroupement alphabétique, actif seulement en navigation libre :
     /// sur une recherche, la pertinence prime sur l'ordre.
     /// Type nommé plutôt qu'un tuple — Swift n'autorise pas de key path
@@ -37,7 +44,7 @@ struct RecitersView: View {
     }
 
     private var grouped: [LetterGroup] {
-        Dictionary(grouping: results) { r -> String in
+        Dictionary(grouping: displayedResults) { r -> String in
             r.custom ? "Mes sources" : String(r.name.prefix(1)).uppercased()
         }
         .sorted { a, b in
@@ -50,6 +57,22 @@ struct RecitersView: View {
 
     private var showGroups: Bool {
         query.trimmingCharacters(in: .whitespaces).isEmpty && results.count > 12
+    }
+
+    private func loadNextPage() {
+        guard visibleCount < results.count else { return }
+        visibleCount = min(visibleCount + pageSize, results.count)
+    }
+
+    @ViewBuilder
+    private var paginationFooter: some View {
+        if displayedResults.count < results.count {
+            ProgressView()
+                .tint(Theme.gold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .onAppear { loadNextPage() }
+        }
     }
 
     var body: some View {
@@ -75,8 +98,10 @@ struct RecitersView: View {
                             }
                         }
                     } else {
-                        ForEach(results) { ReciterRow(reciter: $0) }
+                        ForEach(displayedResults) { ReciterRow(reciter: $0) }
                     }
+
+                    paginationFooter
                 }
                 .padding(.horizontal, 14)
                 .padding(.bottom, 18)
@@ -85,6 +110,8 @@ struct RecitersView: View {
             .background(Color.clear)
             .navigationBarHidden(true)
         }
+        .onChange(of: query) { _, _ in visibleCount = pageSize }
+        .onChange(of: filter) { _, _ in visibleCount = pageSize }
     }
 
     // MARK: Sous-vues
