@@ -7,6 +7,9 @@ struct LibraryView: View {
     @EnvironmentObject private var player: PlayerService
 
     @State private var confirmWipe = false
+    @State private var visibleGroupCount = 30
+
+    private let pageSize = 30
 
     /// Reconstitue, à partir des dossiers présents sur le disque, le couple
     /// (récitateur, version) correspondant. Le dossier porte le slug de l'identifiant.
@@ -41,6 +44,26 @@ struct LibraryView: View {
         downloads.inventory.values.reduce(0) { $0 + $1.count }
     }
 
+    private var displayedGroups: [OfflineGroup] {
+        Array(groups.prefix(visibleGroupCount))
+    }
+
+    private func loadNextGroupPage() {
+        guard visibleGroupCount < groups.count else { return }
+        visibleGroupCount = min(visibleGroupCount + pageSize, groups.count)
+    }
+
+    @ViewBuilder
+    private var groupPaginationFooter: some View {
+        if displayedGroups.count < groups.count {
+            ProgressView()
+                .tint(Theme.gold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .onAppear { loadNextGroupPage() }
+        }
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
@@ -55,11 +78,12 @@ struct LibraryView: View {
                         message: "Ouvre un récitateur, choisis une sourate et appuie sur la flèche. Tu pourras l'écouter sans réseau."
                     )
                 } else {
-                    ForEach(groups) { group in
+                    ForEach(displayedGroups) { group in
                         LibraryGroupCard(reciter: group.reciter,
                                          version: group.version,
                                          surahs: group.surahs)
                     }
+                    groupPaginationFooter
                 }
             }
             .padding(.horizontal, 14)
@@ -166,6 +190,29 @@ struct LibraryGroupCard: View {
     @EnvironmentObject private var player: PlayerService
     @State private var expanded = false
     @State private var confirmDelete = false
+    @State private var visibleSurahCount = 30
+
+    private let pageSize = 30
+
+    private var displayedSurahs: [Surah] {
+        Array(surahs.prefix(visibleSurahCount))
+    }
+
+    private func loadNextSurahPage() {
+        guard visibleSurahCount < surahs.count else { return }
+        visibleSurahCount = min(visibleSurahCount + pageSize, surahs.count)
+    }
+
+    @ViewBuilder
+    private var surahPaginationFooter: some View {
+        if displayedSurahs.count < surahs.count {
+            ProgressView()
+                .tint(Theme.gold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .onAppear { loadNextSurahPage() }
+        }
+    }
 
     private var bytes: Int64 {
         surahs.reduce(Int64(0)) {
@@ -229,7 +276,7 @@ struct LibraryGroupCard: View {
                 VStack(spacing: 0) {
                     OrnamentDivider().padding(.horizontal, 12)
 
-                    ForEach(surahs) { surah in
+                    ForEach(displayedSurahs) { surah in
                         let track = Track(reciterId: reciter.id, reciterName: reciter.name,
                                           reciterNameAr: reciter.nameAr,
                                           recitation: version, surah: surah)
@@ -268,6 +315,8 @@ struct LibraryGroupCard: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                     }
+
+                    surahPaginationFooter
 
                     Button {
                         confirmDelete = true
