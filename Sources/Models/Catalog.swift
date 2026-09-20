@@ -60,6 +60,30 @@ struct Recitation: Codable, Identifiable, Hashable {
             .replacingOccurrences(of: "Rewaya ", with: "")
             .trimmingCharacters(in: .whitespaces)
     }
+
+    /// Nom regroupé pour le filtre compact des riwayat.
+    ///
+    /// Les variantes « Men Tariq ... » restent la même riwaya dans l'interface,
+    /// tandis que les styles sans riwaya explicite (Mushaf complet, Mujawwad…)
+    /// restent sélectionnables comme familles de récitation.
+    var riwayaName: String {
+        var name = shortLabel
+
+        if let separator = name.range(of: " - ") {
+            name = String(name[..<separator.lowerBound])
+        }
+
+        if let tariq = name.range(of: " Men Tariq ",
+                                  options: [.caseInsensitive, .diacriticInsensitive]) {
+            name = String(name[..<tariq.lowerBound])
+        }
+
+        if name == "Mushaf complet (QuranicAudio)" {
+            return "Mushaf complet"
+        }
+
+        return name.trimmingCharacters(in: .whitespaces)
+    }
 }
 
 // MARK: - Récitateur
