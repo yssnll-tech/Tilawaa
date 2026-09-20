@@ -11,6 +11,9 @@ struct ReciterDetailView: View {
     @State private var versionIndex = 0
     @State private var query = ""
     @State private var confirmRemoveAll = false
+    @State private var visibleSurahCount = 30
+
+    private let pageSize = 30
 
     private var version: Recitation? {
         guard reciter.versions.indices.contains(versionIndex) else { return reciter.versions.first }
@@ -33,6 +36,26 @@ struct ReciterDetailView: View {
             RecitersView.fold($0.nameFr).contains(needle)
                 || RecitersView.fold($0.nameTranslit).contains(needle)
                 || $0.nameAr.contains(trimmed)
+        }
+    }
+
+    private var displayedSurahs: [Surah] {
+        Array(visibleSurahs.prefix(visibleSurahCount))
+    }
+
+    private func loadNextSurahPage() {
+        guard visibleSurahCount < visibleSurahs.count else { return }
+        visibleSurahCount = min(visibleSurahCount + pageSize, visibleSurahs.count)
+    }
+
+    @ViewBuilder
+    private var paginationFooter: some View {
+        if displayedSurahs.count < visibleSurahs.count {
+            ProgressView()
+                .tint(Theme.gold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .onAppear { loadNextSurahPage() }
         }
     }
 
@@ -69,9 +92,10 @@ struct ReciterDetailView: View {
                                        title: "Aucune sourate",
                                        message: "Aucune sourate ne correspond à « \(query) ».")
                     } else {
-                        ForEach(visibleSurahs) { surah in
+                        ForEach(displayedSurahs) { surah in
                             SurahRow(track: track(for: surah, version: version), queue: queue)
                         }
+                        paginationFooter
                     }
                 } else {
                     EmptyStateView(icon: "exclamationmark.triangle",
@@ -86,6 +110,8 @@ struct ReciterDetailView: View {
         .background(LiquidBackdrop().opacity(0.9))
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
+        .onChange(of: query) { _, _ in visibleSurahCount = pageSize }
+        .onChange(of: versionIndex) { _, _ in visibleSurahCount = pageSize }
         .confirmationDialog("Supprimer les fichiers hors ligne de cette version ?",
                             isPresented: $confirmRemoveAll, titleVisibility: .visible) {
             Button("Supprimer \(offlineCount) fichier\(offlineCount > 1 ? "s" : "")", role: .destructive) {
