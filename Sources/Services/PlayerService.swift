@@ -75,7 +75,7 @@ final class PlayerService: NSObject, ObservableObject {
         do {
             // `.playback` : le son continue écran verrouillé et ignore le mode silencieux,
             // comportement attendu pour de la récitation.
-            try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            try session.setCategory(.playback, mode: .spokenAudio, options: [.allowAirPlay])
             try session.setActive(true)
         } catch {
             errorMessage = "Session audio indisponible."
@@ -145,6 +145,7 @@ final class PlayerService: NSObject, ObservableObject {
         let item = AVPlayerItem(url: url)
         let newPlayer = AVPlayer(playerItem: item)
         newPlayer.automaticallyWaitsToMinimizeStalling = true
+        newPlayer.allowsExternalPlayback = true
         player = newPlayer
 
         itemObservation = item.observe(\.status, options: [.new]) { [weak self] item, _ in

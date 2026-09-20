@@ -9,6 +9,7 @@ struct TilawaApp: App {
     @StateObject private var downloads = DownloadManager.shared
     @StateObject private var player = PlayerService.shared
     @StateObject private var appearance = AppearanceSettings.shared
+    @StateObject private var externalDisplay = ExternalDisplayManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -17,6 +18,7 @@ struct TilawaApp: App {
                 .environmentObject(downloads)
                 .environmentObject(player)
                 .environmentObject(appearance)
+                .environmentObject(externalDisplay)
                 .preferredColorScheme(appearance.isLight ? .light : .dark)
                 .tint(appearance.accent)
         }

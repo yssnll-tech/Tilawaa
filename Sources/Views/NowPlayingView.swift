@@ -272,6 +272,8 @@ struct NowPlayingView: View {
 
     private func secondaryBar(for track: Track) -> some View {
         HStack(spacing: 0) {
+            ExternalDisplayButton()
+
             Button {
                 player.cycleRepeat()
             } label: {
