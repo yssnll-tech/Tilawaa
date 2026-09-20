@@ -13,6 +13,9 @@ struct QuickAddView: View {
     @State private var query = ""
     @State private var onlyComplete = true
     @State private var justTapped: String?
+    @State private var visibleCount = 30
+
+    private let pageSize = 30
 
     private var results: [Reciter] {
         let base = catalog.allReciters.filter { r in
@@ -24,6 +27,26 @@ struct QuickAddView: View {
         let needle = RecitersView.fold(trimmed)
         return base.filter {
             RecitersView.fold($0.name).contains(needle) || $0.nameAr.contains(trimmed)
+        }
+    }
+
+    private var displayedResults: [Reciter] {
+        Array(results.prefix(visibleCount))
+    }
+
+    private func loadNextPage() {
+        guard visibleCount < results.count else { return }
+        visibleCount = min(visibleCount + pageSize, results.count)
+    }
+
+    @ViewBuilder
+    private var paginationFooter: some View {
+        if displayedResults.count < results.count {
+            ProgressView()
+                .tint(Theme.gold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .onAppear { loadNextPage() }
         }
     }
 
@@ -42,11 +65,12 @@ struct QuickAddView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 8) {
-                            ForEach(results) { reciter in
+                            ForEach(displayedResults) { reciter in
                                 QuickAddRow(reciter: reciter, flashing: justTapped == reciter.id) {
                                     add(reciter)
                                 }
                             }
+                            paginationFooter
                         }
                         .padding(.horizontal, 14)
                         .padding(.bottom, 18)
@@ -56,6 +80,8 @@ struct QuickAddView: View {
             }
         }
         .presentationBackground(.clear)
+        .onChange(of: query) { _, _ in visibleCount = pageSize }
+        .onChange(of: onlyComplete) { _, _ in visibleCount = pageSize }
     }
 
     private var header: some View {
